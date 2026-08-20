@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_SETTINGS, calculateBrew, getCapacityWarning, getRecipe, getSteepSeconds, sanitizeSettings } from './brew'
+import { DEFAULT_SETTINGS, calculateBrew, getCapacityWarning, getRecipe, getSteepSeconds, quantizeToStep, sanitizeSettings } from './brew'
 
 describe('calculateBrew', () => {
   it('matches Hoffmann’s two-cup source recipe', () => {
@@ -22,6 +22,15 @@ describe('calculateBrew', () => {
   it('keeps hot water and ice equal to total recipe water', () => {
     const result = calculateBrew({ ...DEFAULT_SETTINGS, totalWaterMl: 640, icePercent: 38 })
     expect(result.hotWaterMl + result.iceGrams).toBe(640)
+  })
+
+  it('never lets component rounding change the requested total', () => {
+    for (let totalWaterMl = 150; totalWaterMl <= 1500; totalWaterMl += 1) {
+      for (let icePercent = 20; icePercent <= 50; icePercent += 1) {
+        const result = calculateBrew({ ...DEFAULT_SETTINGS, totalWaterMl, icePercent })
+        expect(result.hotWaterMl + result.iceGrams).toBe(totalWaterMl)
+      }
+    }
   })
 
   it('warns when a full immersion batch exceeds brewer capacity', () => {
@@ -68,12 +77,25 @@ describe('calculateBrew', () => {
     })).toBeNull()
   })
 
-  it('keeps a custom recipe on a brewer compatible with its method', () => {
+  it('migrates a saved custom recipe to a stable adjusted starting recipe', () => {
     expect(sanitizeSettings({
       ...DEFAULT_SETTINGS,
       recipeId: 'custom',
       method: 'aeropress',
       brewerId: 'switch-03',
-    }).brewerId).toBe('aeropress-original')
+      ratio: 14.4,
+      icePercent: 45,
+    })).toMatchObject({
+      recipeId: 'aeropress-japanese',
+      method: 'aeropress',
+      brewerId: 'aeropress-original',
+      ratio: 14.4,
+      icePercent: 45,
+    })
+  })
+
+  it('quantizes ratio changes to exactly what the interface displays', () => {
+    expect(quantizeToStep(DEFAULT_SETTINGS.ratio + 0.1, 0.1)).toBe(13.4)
+    expect(sanitizeSettings({ ...DEFAULT_SETTINGS, ratio: 13.433333333333334 }).ratio).toBe(13.4)
   })
 })

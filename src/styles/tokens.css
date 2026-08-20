@@ -21,7 +21,6 @@
   --text-display-sm: 3rem;
   --text-masthead: clamp(2.05rem, 10vw, 4.4rem);
   --text-recipe-result: clamp(1.6rem, 8vw, 2.1rem);
-  --text-mini-wordmark: clamp(1.1rem, 5vw, 1.8rem);
   --text-timer-heading: clamp(1.8rem, 9vw, 3.5rem);
   --text-timer-clock: clamp(4.5rem, 26vw, 9rem);
   --text-compact-unit: 0.72rem;

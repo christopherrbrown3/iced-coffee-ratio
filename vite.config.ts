@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['graphics/ice-mascot-pointing.png', 'graphics/ice-mascot-coffee.png'],
+      includeAssets: ['graphics/coffee-cup-mascots.png', 'graphics/ice-mascot-coffee.png'],
       manifest: {
         name: 'Iced Coffee Calculator',
         short_name: 'Iced Coffee',

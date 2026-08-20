@@ -16,18 +16,19 @@ The curated presets each have their own defaults, compatible brewer list, and ti
 | [Counter Culture flash brew](https://counterculturecoffee.com/pages/flash-brew) | 30 g coffee; 335 g hot water; 165 g ice | Bloom and pulse-pour cues |
 | [AeroPress Japanese flash](https://aeropress.com/blogs/aeropress-recipes/japanese-coffee) | 20 g coffee; 170 g hot water; 150 g ice | 1:30 steep, then press |
 
-Supported brewers include the Hario Switch 02/03, Clever Dripper, [NextLevel Pulsar](https://nextlevelbrewer.com/shop/nextlevel-pulsar-brewer/), Hario V60 02, and AeroPress Original. Numeric capacity warnings are used only for brewers that retain the full hot-water dose; the flow-through V60 intentionally has no fabricated capacity limit.
+Supported brewers include the Hario Switch 02/03, Clever Dripper, [NextLevel Pulsar](https://nextlevelbrewer.com/shop/nextlevel-pulsar-brewer/), Hario V60 02, and AeroPress with the Flow Control cap used by the selected recipe. Numeric capacity warnings are used only for brewers that retain the full hot-water dose; the flow-through V60 intentionally has no fabricated capacity limit.
 
 ## Features
 
 - Coffee in grams, liquid water in millilitres, and ice in grams
 - Live total-water ratio and 20–50% ice adjustment
+- Stable starting recipes with an explicit Adjusted state and one-tap reset
 - Comic-styled steppers, quick batch sizes, and a custom accessible range control
 - Recipe-aware immersion, pulse-pour, and AeroPress timers
 - Pause/resume, optional sound and vibration cues, and best-effort screen wake lock
 - Brewer-capacity warnings with one-tap scaling
 - Saved settings, installable PWA, and offline support after first load
-- Responsive 1950s-advertisement art direction with custom ice-mascot artwork
+- Responsive 1950s-advertisement art direction with a custom ice cube, coffee bean, and iced-cup mascot cast
 
 ## Run locally
 

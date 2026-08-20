@@ -72,7 +72,7 @@ components:
 
 **Creative North Star: "The Countertop Comic"**
 
-Iced Coffee Calculator feels like a cheerful 1950s appliance advertisement that has become a dependable modern tool. Pick, Tune, and Brew share one connected comic frame, while thick ink dividers, flat spot colors, slight print misregistration, and a recurring ice-cube mascot carry the period character.
+Iced Coffee Calculator feels like a cheerful 1950s appliance advertisement that has become a dependable modern tool. Pick, Tune, and Brew share one connected comic frame, while thick ink dividers, flat spot colors, slight print misregistration, and a small cast of kitchen mascots carry the period character.
 
 The app is used with occupied hands in a bright kitchen. Controls therefore remain conventional, large, and unambiguous. The period styling frames the task; it never obscures values, labels, focus, or state.
 
@@ -81,7 +81,7 @@ The app is used with occupied hands in a bright kitchen. Controls therefore rema
 - Three-panel vertical story on mobile; two-column working surface on tablet; three-column comic strip on wide screens, always inside one shared poster frame.
 - Flat spot colors with near-black dividers and one crisp outer-frame shadow.
 - Generated raster illustration for the mascot and drink; semantic HTML for all UI text.
-- The ice mascot is the sole visual protagonist: large in the masthead, prominent beside the primary action, and repeated in timer focus mode.
+- The ice cube is the masthead host. A coffee bean and iced-coffee glass take over beside the primary action and in timer focus mode, so every character has a distinct job instead of repeating one illustration.
 - Dense enough to avoid scrolling during adjustment, spacious enough for 44px touch targets.
 
 ## Colors

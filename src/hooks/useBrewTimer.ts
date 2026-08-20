@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 export type TimerPhase = 'ready' | 'timed' | 'release' | 'complete'
+const CUES_STORAGE_KEY = 'iced-coffee-calculator:cues:v1'
 
 function createCue() {
   const AudioContextClass = window.AudioContext
@@ -15,13 +16,28 @@ export function formatTime(totalSeconds: number) {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
+export function formatCountdownTime(totalSeconds: number) {
+  const safeSeconds = Math.max(0, Math.ceil(totalSeconds))
+  const minutes = Math.floor(safeSeconds / 60)
+  const seconds = safeSeconds % 60
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
+function readCuePreference() {
+  try {
+    return window.localStorage.getItem(CUES_STORAGE_KEY) !== 'off'
+  } catch {
+    return true
+  }
+}
+
 export function useBrewTimer(timedSeconds: number, cueSeconds: number[] = []) {
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const [pausedAt, setPausedAt] = useState<number | null>(null)
   const [pausedDuration, setPausedDuration] = useState(0)
   const [completedAtElapsed, setCompletedAtElapsed] = useState<number | null>(null)
   const [now, setNow] = useState(Date.now())
-  const [cuesEnabled, setCuesEnabled] = useState(true)
+  const [cuesEnabled, setCuesEnabled] = useState(readCuePreference)
   const audioRef = useRef<AudioContext | null>(null)
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
   const previousCueIndexRef = useRef(-1)
@@ -83,6 +99,20 @@ export function useBrewTimer(timedSeconds: number, cueSeconds: number[] = []) {
     const interval = window.setInterval(() => setNow(Date.now()), 250)
     return () => window.clearInterval(interval)
   }, [running])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CUES_STORAGE_KEY, cuesEnabled ? 'on' : 'off')
+    } catch {
+      // Sensory cues still work for this session when storage is unavailable.
+    }
+  }, [cuesEnabled])
+
+  useEffect(() => () => {
+    const audio = audioRef.current
+    audioRef.current = null
+    if (audio && audio.state !== 'closed') void audio.close()
+  }, [])
 
   useEffect(() => {
     if (cueIndex > previousCueIndexRef.current && previousCueIndexRef.current >= 0) playCue()

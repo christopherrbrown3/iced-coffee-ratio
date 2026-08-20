@@ -1,55 +1,75 @@
-import { useMemo, useRef, useState, type CSSProperties } from 'react'
-import { RECIPES, SOURCE_BATCHES, calculateBrew, formatCoffee, formatRatio, getBrewer, getCapacityWarning, getCompatibleBrewers, getMethodLabel, getRecipe, type BrewSettings, type RecipeId, type RoastLevel } from './domain/brew'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { RECIPES, SOURCE_BATCHES, calculateBrew, formatCoffee, formatRatio, getBrewer, getCapacityWarning, getCompatibleBrewers, getMethodLabel, getRecipe, isRecipeAdjusted, type BrewSettings, type RecipeId, type RoastLevel } from './domain/brew'
 import { usePersistentSettings } from './hooks/usePersistentSettings'
 import { Stepper } from './components/Stepper'
 import { TimerView } from './components/TimerView'
 
 type AppView = 'calculator' | 'timer'
+const TIMER_HISTORY_KEY = 'icedCoffeeTimer'
 
 export function App() {
   const [settings, setSettings] = usePersistentSettings()
   const [view, setView] = useState<AppView>('calculator')
   const [copyStatus, setCopyStatus] = useState('')
-  const calculatorHeadingRef = useRef<HTMLHeadingElement>(null)
+  const startTimerRef = useRef<HTMLButtonElement>(null)
+  const viewRef = useRef(view)
   const result = useMemo(() => calculateBrew(settings), [settings])
   const capacityWarning = useMemo(() => getCapacityWarning(settings), [settings])
   const brewer = getBrewer(settings.brewerId)
   const recipe = getRecipe(settings.recipeId)
+  const recipeAdjusted = isRecipeAdjusted(settings)
   const compatibleBrewers = getCompatibleBrewers(settings.method)
   const assetBase = import.meta.env.BASE_URL
   const iceProgress = (settings.icePercent - 20) / 30 * 100
 
+  useEffect(() => {
+    viewRef.current = view
+  }, [view])
+
+  useEffect(() => {
+    if (window.history.state?.[TIMER_HISTORY_KEY]) {
+      const normalizedState = { ...window.history.state }
+      delete normalizedState[TIMER_HISTORY_KEY]
+      window.history.replaceState(normalizedState, '', `${window.location.pathname}${window.location.search}`)
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      if (viewRef.current === 'calculator' && event.state?.[TIMER_HISTORY_KEY]) setView('timer')
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
   const update = <K extends keyof BrewSettings>(key: K, value: BrewSettings[K]) => {
-    setSettings((current) => ({
-      ...current,
-      [key]: value,
-      ...((key === 'ratio' || key === 'icePercent') ? { recipeId: 'custom' as const } : {}),
-    }))
+    setSettings((current) => ({ ...current, [key]: value }))
   }
 
   const selectRecipe = (id: RecipeId) => {
-    if (id === 'custom') {
-      setSettings((current) => ({ ...current, recipeId: 'custom' }))
-      return
-    }
-
     const selected = getRecipe(id)
-    if (!selected) return
     setSettings((current) => ({
       ...current,
       recipeId: selected.id,
       method: selected.method,
-      totalWaterMl: selected.totalWaterMl,
       ratio: selected.ratio,
       icePercent: selected.icePercent,
-      brewerId: selected.defaultBrewerId,
+      brewerId: getCompatibleBrewers(selected.method).some((option) => option.id === current.brewerId)
+        ? current.brewerId
+        : selected.defaultBrewerId,
+    }))
+  }
+
+  const resetRecipe = () => {
+    setSettings((current) => ({
+      ...current,
+      ratio: recipe.ratio,
+      icePercent: recipe.icePercent,
     }))
   }
 
   const scaleToFit = () => {
     if (!capacityWarning) return
-    const maxTotal = Math.floor(capacityWarning.brewer.capacityMl / (1 - settings.icePercent / 100))
-    update('totalWaterMl', maxTotal)
+    const maxTotal = Math.floor(capacityWarning.brewer.capacityMl / (1 - settings.icePercent / 100) / 50) * 50
+    update('totalWaterMl', Math.max(150, maxTotal))
   }
 
   const copyRecipe = async () => {
@@ -63,10 +83,16 @@ export function App() {
     window.setTimeout(() => setCopyStatus(''), 2500)
   }
 
-  const closeTimer = () => {
-    setView('calculator')
-    window.requestAnimationFrame(() => calculatorHeadingRef.current?.focus())
+  const openTimer = () => {
+    window.history.pushState({ ...window.history.state, [TIMER_HISTORY_KEY]: true }, '')
+    setView('timer')
   }
+
+  const closeTimer = useCallback((fromHistory = false) => {
+    if (!fromHistory && window.history.state?.[TIMER_HISTORY_KEY]) window.history.back()
+    setView('calculator')
+    window.requestAnimationFrame(() => startTimerRef.current?.focus())
+  }, [])
 
   if (view === 'timer') {
     return <TimerView settings={settings} result={result} onClose={closeTimer} />
@@ -77,15 +103,15 @@ export function App() {
       <a className="skip-link" href="#main-content">Skip to calculator</a>
       <header className="masthead">
         <div className="masthead__text">
-          <h1 ref={calculatorHeadingRef} tabIndex={-1} aria-label="Iced Coffee Calculator">
+          <h1 aria-label="Iced Coffee Calculator">
             <span>ICED COFFEE</span>
             <span>CALCULATOR</span>
           </h1>
         </div>
-        <img src={`${assetBase}graphics/ice-mascot-coffee.png`} alt="Cheerful illustrated ice cube holding iced coffee and pointing toward the calculator title" />
+        <img src={`${assetBase}graphics/ice-mascot-coffee.png`} width="1000" height="666" alt="" decoding="async" fetchPriority="high" />
       </header>
 
-      <main id="main-content" className="comic-layout">
+      <main id="main-content" className="comic-layout" tabIndex={-1}>
         <section className="comic-panel comic-panel--pick" aria-labelledby="pick-title">
           <div className="panel-heading">
             <span aria-hidden="true">1.</span>
@@ -93,15 +119,18 @@ export function App() {
           </div>
           <div className="pick-fields">
             <label className="select-field">
-              <span>Recipe</span>
+              <span>Starting recipe</span>
               <select value={settings.recipeId} onChange={(event) => selectRecipe(event.target.value as RecipeId)}>
                 {RECIPES.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
-                <option value="custom">Custom · {getMethodLabel(settings.method)}</option>
               </select>
             </label>
             <div className="recipe-context">
               <span>1:{formatRatio(settings.ratio)} total · {settings.icePercent}% ice · {getMethodLabel(settings.method)}</span>
-              {recipe && <a href={recipe.sourceUrl} target="_blank" rel="noreferrer">{recipe.sourceLabel} source ↗</a>}
+              <div className="recipe-context__actions">
+                {recipeAdjusted && <span className="recipe-context__badge">Adjusted</span>}
+                <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" aria-label={`View the ${recipe.sourceLabel} recipe source`}>View source ↗</a>
+                {recipeAdjusted && <button type="button" onClick={resetRecipe} aria-label={`Reset ratio and ice to the ${recipe.name} recipe`}>Reset</button>}
+              </div>
             </div>
             <label className="select-field">
               <span>Brewer</span>
@@ -131,7 +160,7 @@ export function App() {
             <h2 id="tune-title">Tune</h2>
           </div>
 
-          <div className="batch-presets" aria-label="Quick batch sizes">
+          <div className="batch-presets" role="group" aria-label="Quick batch sizes">
             {SOURCE_BATCHES.slice(0, 3).map((amount) => (
               <button key={amount} type="button" aria-pressed={settings.totalWaterMl === amount} onClick={() => update('totalWaterMl', amount)}>
                 {amount} mL
@@ -140,13 +169,13 @@ export function App() {
           </div>
 
           <div className="tune-controls">
-            <Stepper id="total-water" label="Total water (hot + ice)" value={settings.totalWaterMl} min={150} max={1500} step={50} suffix="mL" onChange={(value) => update('totalWaterMl', value)} />
-            <Stepper id="ratio" label="Coffee ratio" value={settings.ratio} min={10} max={20} step={0.1} prefix="1 :" onChange={(value) => update('ratio', value)} />
+            <Stepper id="total-water" label="Total water (hot + ice)" value={settings.totalWaterMl} min={150} max={1500} step={50} inputStep={1} suffix="mL" onChange={(value) => update('totalWaterMl', value)} />
+            <Stepper id="ratio" label="Coffee ratio" value={settings.ratio} min={10} max={20} step={0.1} prefix="1:" onChange={(value) => update('ratio', value)} />
 
             <div className="range-field">
               <div className="range-field__label">
                 <label htmlFor="ice-split">Ice split</label>
-                <output htmlFor="ice-split">{settings.icePercent}%</output>
+                <span className="range-field__value" aria-hidden="true">{settings.icePercent}%</span>
               </div>
               <div className="comic-range" style={{ '--range-progress': `${iceProgress}%` } as CSSProperties}>
                 <div className="comic-range__track" aria-hidden="true">
@@ -167,36 +196,35 @@ export function App() {
             <h2 id="brew-title">Brew</h2>
           </div>
 
-          <div className="recipe-results">
+          <output
+            className="recipe-results"
+            htmlFor="total-water ratio ice-split"
+            aria-label={`Recipe result: ${formatCoffee(result.coffeeGrams)} grams coffee, ${result.hotWaterMl} millilitres hot water, and ${result.iceGrams} grams ice`}
+            aria-atomic="true"
+          >
             <div><strong>{formatCoffee(result.coffeeGrams)}<small>g</small></strong><span>Coffee</span></div>
             <div><strong>{result.hotWaterMl}<small>mL</small></strong><span>Hot water</span></div>
             <div><strong>{result.iceGrams}<small>g</small></strong><span>Ice</span></div>
-          </div>
+          </output>
 
           {capacityWarning && (
-            <div className="capacity-warning" role="alert">
+            <div id="capacity-warning" className="capacity-warning" role="alert">
               <strong>Too much hot water for the {capacityWarning.brewer.shortName}.</strong>
-              <p>{result.hotWaterMl} mL exceeds its listed {capacityWarning.brewer.capacityMl} mL capacity. Use {capacityWarning.batches} batches or scale down.</p>
+              <p>{result.hotWaterMl} mL exceeds its listed {capacityWarning.brewer.capacityMl} mL capacity. Scale down or choose a larger brewer.</p>
               <button type="button" onClick={scaleToFit}>Scale to fit</button>
             </div>
           )}
 
           <div className="brew-actions">
-            <img src={`${assetBase}graphics/ice-mascot-pointing.png`} alt="Cheerful illustrated ice cube pointing toward the timer button" />
+            <img src={`${assetBase}graphics/coffee-cup-mascots.png`} width="900" height="600" alt="" loading="lazy" decoding="async" />
             <div>
-              <button className="primary-action" type="button" disabled={Boolean(capacityWarning)} onClick={() => setView('timer')}>START TIMER</button>
+              <button ref={startTimerRef} className="primary-action" type="button" disabled={Boolean(capacityWarning)} aria-describedby={capacityWarning ? 'capacity-warning' : undefined} onClick={openTimer}>START TIMER</button>
               <button className="text-action" type="button" onClick={copyRecipe}>Copy recipe</button>
-              <p className="copy-status" aria-live="polite">{copyStatus}</p>
+              <p className="copy-status" role="status">{copyStatus}</p>
             </div>
           </div>
         </section>
       </main>
-
-      <footer>
-        Recipe sources: {RECIPES.map((source, index) => (
-          <span key={source.id}>{index > 0 && ' · '}<a href={source.sourceUrl} target="_blank" rel="noreferrer">{source.sourceLabel} ↗</a></span>
-        ))}
-      </footer>
     </div>
   )
 }
