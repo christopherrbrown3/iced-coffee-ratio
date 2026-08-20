@@ -678,6 +678,7 @@ a {
 
 .brew-actions img {
   width: min(150%, 220px);
+  height: auto;
   max-height: 165px;
   justify-self: start;
   object-fit: contain;
@@ -1036,15 +1037,18 @@ a {
   }
 
   .brew-actions {
-    grid-template-columns: minmax(150px, 0.68fr) minmax(0, 1fr);
+    grid-template-columns: minmax(140px, 1fr) minmax(0, 1fr);
+    gap: var(--space-md);
     width: 100%;
     margin-top: auto;
     padding-top: var(--space-lg);
   }
 
   .brew-actions img {
-    width: min(148%, 230px);
-    max-height: 180px;
+    width: 100%;
+    max-width: 160px;
+    max-height: none;
+    justify-self: end;
   }
 
   .recipe-results small {
