@@ -403,6 +403,9 @@ a {
   padding: 0;
   background: transparent;
   color: var(--color-ink);
+  -webkit-appearance: textfield;
+  -moz-appearance: textfield;
+  appearance: textfield;
   font-size: var(--text-lg);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
@@ -444,6 +447,7 @@ a {
 .stepper__value input::-webkit-inner-spin-button,
 .stepper__value input::-webkit-outer-spin-button {
   margin: 0;
+  -webkit-appearance: none;
   appearance: none;
 }
 
@@ -670,17 +674,15 @@ a {
 
 .brew-actions {
   display: grid;
-  grid-template-columns: minmax(130px, 0.9fr) minmax(0, 1.1fr);
-  align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   margin-top: var(--space-md);
 }
 
 .brew-actions img {
-  width: min(150%, 220px);
+  width: min(100%, 210px);
   height: auto;
-  max-height: 165px;
-  justify-self: start;
+  max-height: 175px;
+  justify-self: center;
   object-fit: contain;
   object-position: bottom center;
   filter: drop-shadow(3px 3px 0 var(--color-ink));
@@ -689,6 +691,11 @@ a {
 .brew-actions > div {
   display: grid;
   gap: var(--space-xs);
+  width: 100%;
+}
+
+.brew-actions .primary-action {
+  width: 100%;
 }
 
 .primary-action,
@@ -988,17 +995,6 @@ a {
     gap: var(--stroke-medium);
   }
 
-  .brew-actions {
-    grid-template-columns: 190px minmax(320px, 1fr);
-    width: min(100%, 720px);
-    margin-inline: auto;
-  }
-
-  .brew-actions img {
-    width: 240px;
-    max-height: 190px;
-  }
-
   .timer-main {
     grid-template-columns: minmax(0, 1fr) 220px;
   }
@@ -1025,6 +1021,22 @@ a {
   }
 }
 
+@media (min-width: 900px) {
+  .brew-actions {
+    grid-template-columns: 190px minmax(320px, 1fr);
+    align-items: end;
+    width: min(100%, 720px);
+    margin-inline: auto;
+  }
+
+  .brew-actions img {
+    width: 100%;
+    max-width: 190px;
+    max-height: none;
+    justify-self: end;
+  }
+}
+
 @media (min-width: 1020px) {
   .comic-layout {
     grid-template-areas: 'pick tune brew';
@@ -1039,6 +1051,7 @@ a {
   .brew-actions {
     grid-template-columns: minmax(140px, 1fr) minmax(0, 1fr);
     gap: var(--space-md);
+    align-items: center;
     width: 100%;
     margin-top: auto;
     padding-top: var(--space-lg);
