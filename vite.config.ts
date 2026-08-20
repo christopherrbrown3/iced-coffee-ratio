@@ -8,11 +8,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['graphics/ratio-hero-mascot.png', 'graphics/ratio-hero-pour.png'],
+      includeAssets: ['graphics/ice-mascot-pointing.png', 'graphics/ice-mascot-coffee.png'],
       manifest: {
-        name: 'Ratio Hero — Iced Coffee Calculator',
-        short_name: 'Ratio Hero',
-        description: 'Ice-aware coffee ratios and a guided immersion brew timer.',
+        name: 'Iced Coffee Calculator',
+        short_name: 'Iced Coffee',
+        description: 'Ice-aware coffee ratios and guided timers for immersion, flash brew, and AeroPress.',
         theme_color: '#b91f24',
         background_color: '#f5fbfa',
         display: 'standalone',

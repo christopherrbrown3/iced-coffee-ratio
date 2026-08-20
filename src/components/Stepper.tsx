@@ -7,11 +7,12 @@ interface StepperProps {
   min: number
   max: number
   step: number
+  prefix?: string
   suffix?: string
   onChange: (value: number) => void
 }
 
-export function Stepper({ id, label, value, min, max, step, suffix, onChange }: StepperProps) {
+export function Stepper({ id, label, value, min, max, step, prefix, suffix, onChange }: StepperProps) {
   const update = (next: number) => onChange(Math.min(Math.max(next, min), max))
   const handleInput = (event: ChangeEvent<HTMLInputElement>) => {
     const next = Number(event.target.value)
@@ -24,7 +25,8 @@ export function Stepper({ id, label, value, min, max, step, suffix, onChange }: 
       <div className="stepper__control">
         <button type="button" onClick={() => update(value - step)} aria-label={`Decrease ${label}`} disabled={value <= min}>−</button>
         <div className="stepper__value">
-          <input id={id} type="number" inputMode="decimal" min={min} max={max} step={step} value={Number(value.toFixed(1))} onChange={handleInput} />
+          {prefix && <span aria-hidden="true">{prefix}</span>}
+          <input id={id} type="number" inputMode="decimal" min={min} max={max} step={step} value={Number(value.toFixed(1))} aria-label={`${label}${prefix || suffix ? ` (${[prefix, suffix].filter(Boolean).join(' ')})` : ''}`} onChange={handleInput} />
           {suffix && <span aria-hidden="true">{suffix}</span>}
         </div>
         <button type="button" onClick={() => update(value + step)} aria-label={`Increase ${label}`} disabled={value >= max}>+</button>

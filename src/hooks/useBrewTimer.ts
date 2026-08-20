@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-export type TimerStage = 'ready' | 'steep' | 'ice' | 'drawdown' | 'complete'
+export type TimerPhase = 'ready' | 'timed' | 'release' | 'complete'
 
 function createCue() {
   const AudioContextClass = window.AudioContext
@@ -15,7 +15,7 @@ export function formatTime(totalSeconds: number) {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
-export function useBrewTimer(steepSeconds: number) {
+export function useBrewTimer(timedSeconds: number, cueSeconds: number[] = []) {
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const [pausedAt, setPausedAt] = useState<number | null>(null)
   const [pausedDuration, setPausedDuration] = useState(0)
@@ -24,22 +24,21 @@ export function useBrewTimer(steepSeconds: number) {
   const [cuesEnabled, setCuesEnabled] = useState(true)
   const audioRef = useRef<AudioContext | null>(null)
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
-  const previousStageRef = useRef<TimerStage>('ready')
+  const previousCueIndexRef = useRef(-1)
 
   const running = startedAt !== null && pausedAt === null && completedAtElapsed === null
   const activeNow = pausedAt ?? now
   const elapsedSeconds = completedAtElapsed ?? (startedAt === null ? 0 : Math.max(0, (activeNow - startedAt - pausedDuration) / 1000))
-  const remainingSeconds = Math.max(0, steepSeconds - elapsedSeconds)
+  const remainingSeconds = Math.max(0, timedSeconds - elapsedSeconds)
 
-  const stage = useMemo<TimerStage>(() => {
+  const phase = useMemo<TimerPhase>(() => {
     if (startedAt === null) return 'ready'
     if (completedAtElapsed !== null) return 'complete'
-    if (elapsedSeconds < steepSeconds - 30) return 'steep'
-    if (elapsedSeconds < steepSeconds) return 'ice'
-    return 'drawdown'
-  }, [completedAtElapsed, elapsedSeconds, startedAt, steepSeconds])
+    return elapsedSeconds < timedSeconds ? 'timed' : 'release'
+  }, [completedAtElapsed, elapsedSeconds, startedAt, timedSeconds])
 
-  const drawdownSeconds = Math.max(0, elapsedSeconds - steepSeconds)
+  const releaseSeconds = Math.max(0, elapsedSeconds - timedSeconds)
+  const cueIndex = cueSeconds.reduce((latest, second, index) => elapsedSeconds >= second ? index : latest, -1)
 
   const playCue = useCallback(() => {
     if (!cuesEnabled) return
@@ -86,9 +85,9 @@ export function useBrewTimer(steepSeconds: number) {
   }, [running])
 
   useEffect(() => {
-    if (stage !== previousStageRef.current && previousStageRef.current !== 'ready') playCue()
-    previousStageRef.current = stage
-  }, [playCue, stage])
+    if (cueIndex > previousCueIndexRef.current && previousCueIndexRef.current >= 0) playCue()
+    previousCueIndexRef.current = cueIndex
+  }, [cueIndex, playCue])
 
   useEffect(() => {
     if (running) void requestWakeLock()
@@ -114,6 +113,7 @@ export function useBrewTimer(steepSeconds: number) {
     setPausedDuration(0)
     setCompletedAtElapsed(null)
     setNow(Date.now())
+    previousCueIndexRef.current = 0
   }, [])
 
   const pause = useCallback(() => {
@@ -142,16 +142,17 @@ export function useBrewTimer(steepSeconds: number) {
     setPausedDuration(0)
     setCompletedAtElapsed(null)
     setNow(Date.now())
-    previousStageRef.current = 'ready'
+    previousCueIndexRef.current = -1
   }, [])
 
   return {
-    stage,
+    phase,
     running,
     paused: pausedAt !== null,
     elapsedSeconds,
     remainingSeconds,
-    drawdownSeconds,
+    releaseSeconds,
+    cueIndex,
     cuesEnabled,
     setCuesEnabled,
     start,

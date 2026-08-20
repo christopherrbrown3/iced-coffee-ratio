@@ -14,11 +14,11 @@ Home coffee brewers using a Hario Switch or Clever Dripper, usually on a phone b
 
 ## Product Purpose
 
-Ratio Hero calculates the coffee, hot-water, and ice quantities for an immersion iced coffee recipe, then guides the brew with a built-in stage timer. Success means a user can adjust a batch and begin brewing in seconds without an account, network connection, or backend.
+Iced Coffee Calculator calculates the coffee, hot-water, and ice quantities for curated iced coffee recipes, then guides each method with a built-in stage timer. Success means a user can adjust a batch and begin brewing in seconds without an account, network connection, or backend.
 
 ## Positioning
 
-The ice-aware brew calculator that turns Hoffmann-style immersion ratios into an immediately usable, brewer-aware recipe and timer.
+The ice-aware brew calculator that turns trusted immersion, flash-brew, and AeroPress ratios into an immediately usable, brewer-aware recipe and timer.
 
 ## Brand Personality
 

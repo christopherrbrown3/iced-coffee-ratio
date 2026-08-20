@@ -1,5 +1,5 @@
 ---
-name: Ratio Hero
+name: Iced Coffee Calculator
 description: A 1950s-advertising-inspired iced coffee calculator and guided brew timer.
 colors:
   cool-paper: "oklch(0.975 0.008 200)"
@@ -66,13 +66,13 @@ components:
     padding: "24px"
 ---
 
-# Design System: Ratio Hero
+# Design System: Iced Coffee Calculator
 
 ## Overview
 
 **Creative North Star: "The Countertop Comic"**
 
-Ratio Hero feels like a cheerful 1950s appliance advertisement that has become a dependable modern tool. Pick, Tune, and Brew share one connected comic frame, while thick ink dividers, flat spot colors, slight print misregistration, and small generated illustrations carry the period character.
+Iced Coffee Calculator feels like a cheerful 1950s appliance advertisement that has become a dependable modern tool. Pick, Tune, and Brew share one connected comic frame, while thick ink dividers, flat spot colors, slight print misregistration, and a recurring ice-cube mascot carry the period character.
 
 The app is used with occupied hands in a bright kitchen. Controls therefore remain conventional, large, and unambiguous. The period styling frames the task; it never obscures values, labels, focus, or state.
 
@@ -81,6 +81,7 @@ The app is used with occupied hands in a bright kitchen. Controls therefore rema
 - Three-panel vertical story on mobile; two-column working surface on tablet; three-column comic strip on wide screens, always inside one shared poster frame.
 - Flat spot colors with near-black dividers and one crisp outer-frame shadow.
 - Generated raster illustration for the mascot and drink; semantic HTML for all UI text.
+- The ice mascot is the sole visual protagonist: large in the masthead, prominent beside the primary action, and repeated in timer focus mode.
 - Dense enough to avoid scrolling during adjustment, spacious enough for 44px touch targets.
 
 ## Colors
@@ -122,7 +123,7 @@ The palette uses appliance-era aqua and teal for structure, mustard for the calc
 - **Body** (400, 1rem, 1.5): Instructions and supporting copy, capped at 65ch.
 - **Label** (700, 0.875rem, 0.02em): Buttons, fields, and short quantity labels.
 
-Responsive display tokens cover the expressive exceptions: masthead `2.25–4.9rem`, recipe results `1.6–2.1rem`, timer heading `1.8–3.5rem`, and timer clock `4.5–9rem`. Compact unit labels may use `0.72rem` only inside the narrow wide-screen Brew panel.
+Responsive display tokens cover the expressive exceptions: masthead `2.05–4.4rem`, recipe results `1.6–2.1rem`, timer heading `1.8–3.5rem`, and timer clock `4.5–9rem`. Compact unit labels may use `0.72rem` only inside the narrow wide-screen Brew panel.
 
 **The One Loud Voice Rule.** Display lettering belongs to the masthead and numbered panel headings; never use it for form labels or instructions.
 
@@ -165,6 +166,7 @@ Depth is printed and structural rather than atmospheric. The connected poster fr
 - **Style:** Cool Paper, 3px ink outline, 10px corners, visible labels, tabular numerals.
 - **Focus:** Mustard 3px exterior ring.
 - **Error / Disabled:** Error pairs Cherry Red with an inline message; disabled reduces saturation but keeps readable ink.
+- **Range:** A native range input sits over a 14px paper-and-ink track with flat teal progress, printed tick marks, and a 28px mustard thumb. The adjacent summary always translates the percentage into hot-water and ice quantities.
 
 ### Navigation
 
