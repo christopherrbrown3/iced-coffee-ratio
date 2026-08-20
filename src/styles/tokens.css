@@ -1,0 +1,49 @@
+:root {
+  --color-paper: oklch(0.975 0.008 200);
+  --color-paper-dot: oklch(0.72 0.02 200);
+  --color-ink: oklch(0.18 0.02 230);
+  --color-teal: oklch(0.45 0.09 200);
+  --color-teal-deep: oklch(0.32 0.07 200);
+  --color-aqua: oklch(0.79 0.105 200);
+  --color-red: oklch(0.53 0.205 28);
+  --color-yellow: oklch(0.84 0.16 95);
+  --color-coffee: oklch(0.36 0.08 50);
+
+  --font-display: 'Bowlby One SC', Impact, sans-serif;
+  --font-body: 'Atkinson Hyperlegible', Arial, sans-serif;
+
+  --text-xs: 0.8rem;
+  --text-sm: 0.925rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.375rem;
+  --text-xl: 1.75rem;
+  --text-display-sm: 3rem;
+  --text-masthead: clamp(2.25rem, 14vw, 4.9rem);
+  --text-recipe-result: clamp(1.6rem, 8vw, 2.1rem);
+  --text-mini-wordmark: clamp(1.1rem, 5vw, 1.8rem);
+  --text-timer-heading: clamp(1.8rem, 9vw, 3.5rem);
+  --text-timer-clock: clamp(4.5rem, 26vw, 9rem);
+  --text-compact-unit: 0.72rem;
+  --text-narrow-masthead: 2rem;
+  --text-narrow-result: 1.45rem;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+
+  --radius-control: 10px;
+  --radius-control-inner: 7px;
+  --radius-panel: 14px;
+  --radius-pill: 999px;
+  --stroke-medium: 2px;
+  --stroke-heavy: 3px;
+
+  --shadow-ink-sm: 3px 3px 0 var(--color-ink);
+  --shadow-ink: 4px 4px 0 var(--color-ink);
+  --shadow-pressed: 1px 1px 0 var(--color-ink);
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+}
