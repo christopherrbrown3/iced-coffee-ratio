@@ -59,7 +59,9 @@ export function Stepper({ id, label, value, min, max, step, inputStep = step, pr
         <button type="button" onClick={() => update(value - step)} aria-label={`Decrease ${label}`} disabled={value <= min}>−</button>
         <div className={`stepper__value${prefix ? ' stepper__value--prefixed' : ''}`}>
           {prefix && <span className="stepper__prefix" aria-hidden="true">{prefix}</span>}
-          <input id={id} type="number" inputMode="decimal" min={min} max={max} step={inputStep} value={draft} aria-label={`${label}${prefix || suffix ? ` (${[prefix, suffix].filter(Boolean).join(' ')})` : ''}`} onChange={handleInput} onBlur={commitDraft} onKeyDown={handleKeyDown} onFocus={(event) => event.currentTarget.select()} />
+          <span className="stepper__input-sizer" data-value={draft || '0'}>
+            <input id={id} type="number" inputMode="decimal" min={min} max={max} step={inputStep} value={draft} aria-label={`${label}${prefix || suffix ? ` (${[prefix, suffix].filter(Boolean).join(' ')})` : ''}`} onChange={handleInput} onBlur={commitDraft} onKeyDown={handleKeyDown} onFocus={(event) => event.currentTarget.select()} />
+          </span>
           {suffix && <span className="stepper__suffix" aria-hidden="true">{suffix}</span>}
         </div>
         <button type="button" onClick={() => update(value + step)} aria-label={`Increase ${label}`} disabled={value >= max}>+</button>

@@ -396,8 +396,29 @@ a {
   padding-inline: var(--space-sm);
 }
 
+.stepper__input-sizer {
+  display: inline-grid;
+  min-width: 1ch;
+  max-width: 100%;
+  font-size: var(--text-lg);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stepper__input-sizer::after {
+  grid-area: 1 / 1;
+  min-width: 1ch;
+  content: attr(data-value);
+  visibility: hidden;
+  white-space: pre;
+}
+
 .stepper__value input {
-  width: min(7ch, 100%);
+  grid-area: 1 / 1;
+  /* Let the mirrored draft size the grid track, not the input's native width. */
+  width: 0;
+  min-width: 100%;
   border: 0;
   outline: 0;
   padding: 0;
@@ -406,9 +427,8 @@ a {
   -webkit-appearance: textfield;
   -moz-appearance: textfield;
   appearance: textfield;
-  font-size: var(--text-lg);
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font: inherit;
+  font-variant-numeric: inherit;
   text-align: right;
 }
 
@@ -417,7 +437,6 @@ a {
 }
 
 .stepper__value--prefixed input {
-  width: min(4.5ch, 100%);
   text-align: left;
 }
 
@@ -432,6 +451,7 @@ a {
 .stepper__suffix {
   font-size: var(--text-sm);
   font-weight: 700;
+  line-height: 1;
 }
 
 .stepper__value:focus-within {
