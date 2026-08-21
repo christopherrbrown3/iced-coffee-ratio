@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, type MouseEvent } from 'react'
-import { formatCoffee, getBrewer, getTimedBrewSeconds, type BrewResult, type BrewSettings } from '../domain/brew'
+import { formatCoffee, type BrewResult, type BrewSettings } from '../domain/brew'
+import { resolveTimerGuide } from '../domain/timerGuide'
 import { formatCountdownTime, formatTime, useBrewTimer } from '../hooks/useBrewTimer'
 
 interface TimerViewProps {
@@ -8,46 +9,18 @@ interface TimerViewProps {
   onClose: (fromHistory?: boolean) => void
 }
 
-interface TimedStep {
-  atSeconds: number
-  eyebrow: string
-  title: string
-  instruction: string
-}
+const measurementPattern = /(\d+(?:\.\d+)?(?:–\d+(?:\.\d+)?)?\s(?:g|mL|°C))/g
 
-function scaledPour(hotWaterMl: number, sourceAmount: number) {
-  return Math.round(hotWaterMl * sourceAmount / 335)
-}
-
-function getTimedSteps(settings: BrewSettings, result: BrewResult, timedSeconds: number): TimedStep[] {
-  if (settings.method === 'flash') {
-    const bloomTarget = Math.min(result.hotWaterMl, Math.max(1, Math.round(result.coffeeGrams)))
-    const firstPourTarget = Math.max(bloomTarget, scaledPour(result.hotWaterMl, 100))
-    const secondPourTarget = Math.max(firstPourTarget, scaledPour(result.hotWaterMl, 200))
-    return [
-      { atSeconds: 0, eyebrow: 'Bloom', title: 'Wake up the coffee', instruction: `Start the timer and bloom with ${bloomTarget} mL, wetting every ground.` },
-      { atSeconds: 30, eyebrow: 'Pour', title: 'Circle to the first mark', instruction: `Pour in gentle circles until the scale reaches ${firstPourTarget} mL.` },
-      { atSeconds: 60, eyebrow: 'Pour', title: 'Build the brew', instruction: `When the bed drops about 1 cm, pour in circles to ${secondPourTarget} mL.` },
-      { atSeconds: 90, eyebrow: 'Pulse', title: 'Finish the pour', instruction: `Keep pulsing every 30 seconds as it drains, stopping at ${result.hotWaterMl} mL total hot water.` },
-    ]
-  }
-
-  if (settings.method === 'aeropress') {
-    return [
-      { atSeconds: 0, eyebrow: 'Steep', title: 'Pour, stir, wait', instruction: `Add ${result.hotWaterMl} mL hot water, stir until every ground is wet, and steep for 1:30.` },
-    ]
-  }
-
-  return [
-    { atSeconds: 0, eyebrow: 'Steep', title: 'Mix, then let it mingle', instruction: 'Let the coffee steep. Give it one gentle stir if any grounds remain dry.' },
-    { atSeconds: timedSeconds - 30, eyebrow: 'Almost!', title: 'Ice in the carafe', instruction: `Weigh ${result.iceGrams} g ice straight from the freezer into your carafe.` },
-  ]
+function EmphasizedInstruction({ text }: { text: string }) {
+  return <>{text.split(measurementPattern).map((part, index) => (
+    index % 2 === 1 ? <strong key={`${part}-${index}`}>{part}</strong> : part
+  ))}</>
 }
 
 export function TimerView({ settings, result, onClose }: TimerViewProps) {
-  const brewer = getBrewer(settings.brewerId)
-  const timedSeconds = getTimedBrewSeconds(settings)
-  const steps = useMemo(() => getTimedSteps(settings, result, timedSeconds), [result, settings, timedSeconds])
+  const guide = useMemo(() => resolveTimerGuide(settings, result), [result, settings])
+  const timedSeconds = guide.durationSeconds
+  const steps = guide.steps
   const cueSeconds = useMemo(() => [...steps.map((step) => step.atSeconds), timedSeconds], [steps, timedSeconds])
   const timer = useBrewTimer(timedSeconds, cueSeconds)
   const resetTimer = timer.reset
@@ -59,7 +32,8 @@ export function TimerView({ settings, result, onClose }: TimerViewProps) {
   activityRef.current = { running: timer.running, paused: timer.paused }
 
   useEffect(() => {
-    headingRef.current?.focus()
+    window.scrollTo(0, 0)
+    headingRef.current?.focus({ preventScroll: true })
   }, [])
 
   useEffect(() => {
@@ -100,24 +74,19 @@ export function TimerView({ settings, result, onClose }: TimerViewProps) {
   }
 
   const activeStep = steps[Math.max(0, Math.min(timer.cueIndex, steps.length - 1))]
-  const releaseCopy = settings.method === 'aeropress'
-    ? { eyebrow: 'Press', title: 'Press it gently', instruction: brewer.releaseInstruction, button: 'PRESSING DONE' }
-    : settings.method === 'flash'
-      ? { eyebrow: 'Drain', title: 'Catch the last drops', instruction: brewer.releaseInstruction, button: 'DRAW-DOWN DONE' }
-      : { eyebrow: 'Release', title: 'Let it rain', instruction: brewer.releaseInstruction, button: 'DRAW-DOWN DONE' }
   const displayCopy = timer.phase === 'ready'
-    ? { eyebrow: 'Ready?', title: 'Set the scene' }
+    ? { eyebrow: 'Ready?', title: 'Set up the brew' }
     : timer.phase === 'timed'
       ? activeStep
       : timer.phase === 'release'
-        ? releaseCopy
-        : { eyebrow: 'Ta-da!', title: 'Stir, pour, enjoy' }
+        ? guide.release
+        : guide.complete
   const clockIsElapsed = timer.phase === 'release' || timer.phase === 'complete'
   const timeDisplay = clockIsElapsed
     ? formatTime(timer.releaseSeconds)
     : formatCountdownTime(timer.remainingSeconds)
   const clockLabel = `${timeDisplay} ${clockIsElapsed ? 'elapsed' : 'remaining'}${timer.paused ? ', paused' : ''}`
-  const tone = settings.method === 'immersion' && timer.phase === 'timed' && timer.cueIndex > 0 ? 'ice' : timer.phase
+  const tone = timer.phase === 'timed' ? activeStep.tone : timer.phase
 
   return (
     <div className={`timer-view timer-view--${tone}`}>
@@ -143,32 +112,16 @@ export function TimerView({ settings, result, onClose }: TimerViewProps) {
           </div>
 
           <div className="timer-instruction" aria-live="polite" aria-atomic="true">
-            {timer.phase === 'ready' && settings.method === 'immersion' && (
+            {timer.phase === 'ready' && (
               <ol>
-                <li>{brewer.setupInstruction}</li>
-                <li>{settings.brewerId === 'pulsar' ? `Pour ${result.hotWaterMl} mL through the cap and agitate gently.` : `Add ${result.hotWaterMl} mL hot water, then ${result.coffeeGrams} g coffee.`}</li>
-                <li>Mix thoroughly—no dry pockets.</li>
-                <li>Keep {result.iceGrams} g ice in the freezer until the cue.</li>
-              </ol>
-            )}
-            {timer.phase === 'ready' && settings.method === 'flash' && (
-              <ol>
-                <li>Add <strong>{result.iceGrams} g ice</strong> to the carafe.</li>
-                <li>{brewer.setupInstruction}</li>
-                <li>Add <strong>{result.coffeeGrams} g</strong> medium-fine coffee.</li>
-              </ol>
-            )}
-            {timer.phase === 'ready' && settings.method === 'aeropress' && (
-              <ol>
-                <li>Add <strong>{result.iceGrams} g ice</strong> to a sturdy tumbler.</li>
-                <li>{brewer.setupInstruction}</li>
-                <li>Use the {settings.roast === 'dark' ? 'cooler' : settings.roast === 'light' ? 'hotter' : 'middle'} end of the 88–96 °C range.</li>
-                <li>Set the AeroPress on the tumbler and add <strong>{result.coffeeGrams} g</strong> medium-fine coffee.</li>
+                {guide.readyInstructions.map((instruction, index) => (
+                  <li key={`${index}-${instruction}`}><EmphasizedInstruction text={instruction} /></li>
+                ))}
               </ol>
             )}
             {timer.phase === 'timed' && <p>{activeStep.instruction}</p>}
-            {timer.phase === 'release' && <p>{releaseCopy.instruction}</p>}
-            {timer.phase === 'complete' && <p>Stir until most of the brew ice has melted, then serve over fresh ice.</p>}
+            {timer.phase === 'release' && <p>{guide.release.instruction}</p>}
+            {timer.phase === 'complete' && <p>{guide.complete.instruction}</p>}
           </div>
 
           <div className="timer-actions">
@@ -180,7 +133,7 @@ export function TimerView({ settings, result, onClose }: TimerViewProps) {
             )}
             {timer.phase === 'release' && (
               <>
-                <button className="primary-action" type="button" onClick={timer.finish}>{releaseCopy.button}</button>
+                <button className="primary-action" type="button" onClick={timer.finish}>{guide.release.buttonLabel}</button>
                 <button className="secondary-action" type="button" onClick={timer.paused ? timer.resume : timer.pause}>
                   {timer.paused ? 'RESUME' : 'PAUSE'}
                 </button>

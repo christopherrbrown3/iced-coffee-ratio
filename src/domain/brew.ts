@@ -1,16 +1,19 @@
 export type BrewMethod = 'immersion' | 'flash' | 'aeropress'
-export type RecipeId = 'hoffmann' | 'counter-culture-flash' | 'aeropress-japanese'
-export type BrewerId = 'switch-02' | 'switch-03' | 'clever' | 'pulsar' | 'v60-02' | 'aeropress-original'
+export type RecipeId = 'hoffmann' | 'counter-culture-flash' | 'april-high-ice' | 'kurasu-japanese' | 'lance-low-ice' | 'aeropress-japanese'
+export type RecipeTimerProfileId = 'hoffmann-immersion' | 'counter-culture-flash' | 'april-high-ice' | 'kurasu-japanese-v60' | 'lance-low-ice' | 'aeropress-japanese'
+export type BrewerId = 'switch-02' | 'switch-03' | 'clever' | 'pulsar' | 'v60-02' | 'april-brewer' | 'aeropress-original'
 export type RoastLevel = 'light' | 'medium' | 'dark'
 
 export interface RecipePreset {
   id: RecipeId
   name: string
   method: BrewMethod
-  totalWaterMl: number
+  sourceTotalWaterMl: number
   ratio: number
   icePercent: number
   defaultBrewerId: BrewerId
+  supportedBrewerIds: readonly BrewerId[]
+  timerProfileId: RecipeTimerProfileId
   sourceLabel: string
   sourceUrl: string
 }
@@ -57,34 +60,79 @@ export interface CapacityWarning {
 export const RECIPES: RecipePreset[] = [
   {
     id: 'hoffmann',
-    name: 'Hoffmann · Immersion',
+    name: 'Hoffmann · Iced immersion',
     method: 'immersion',
-    totalWaterMl: 500,
+    sourceTotalWaterMl: 500,
     ratio: 13.3,
     icePercent: 34,
     defaultBrewerId: 'switch-03',
+    supportedBrewerIds: ['switch-02', 'switch-03', 'clever', 'pulsar'],
+    timerProfileId: 'hoffmann-immersion',
     sourceLabel: 'James Hoffmann',
     sourceUrl: 'https://www.youtube.com/watch?v=8uGGeV8A-BM',
   },
   {
     id: 'counter-culture-flash',
-    name: 'Counter Culture · Flash',
+    name: 'Counter Culture · Flash brew',
     method: 'flash',
-    totalWaterMl: 500,
+    sourceTotalWaterMl: 500,
     ratio: 16.7,
     icePercent: 33,
     defaultBrewerId: 'v60-02',
+    supportedBrewerIds: ['v60-02', 'april-brewer'],
+    timerProfileId: 'counter-culture-flash',
     sourceLabel: 'Counter Culture',
     sourceUrl: 'https://counterculturecoffee.com/pages/flash-brew',
   },
   {
+    id: 'april-high-ice',
+    name: 'April · High-ice pour-over',
+    method: 'flash',
+    sourceTotalWaterMl: 400,
+    ratio: 20,
+    icePercent: 50,
+    defaultBrewerId: 'april-brewer',
+    supportedBrewerIds: ['april-brewer'],
+    timerProfileId: 'april-high-ice',
+    sourceLabel: 'April Coffee',
+    sourceUrl: 'https://www.youtube.com/watch?v=6B0lRF3kG4s',
+  },
+  {
+    id: 'kurasu-japanese',
+    name: 'Kurasu · Japanese V60',
+    method: 'flash',
+    sourceTotalWaterMl: 220,
+    ratio: 13.8,
+    icePercent: 32,
+    defaultBrewerId: 'v60-02',
+    supportedBrewerIds: ['v60-02'],
+    timerProfileId: 'kurasu-japanese-v60',
+    sourceLabel: 'Kurasu Kyoto',
+    sourceUrl: 'https://kurasu.kyoto/blogs/kurasu-journal/brew-guide-on-iced-pour-over-coffee',
+  },
+  {
+    id: 'lance-low-ice',
+    name: 'Lance · Low-ice flash',
+    method: 'flash',
+    sourceTotalWaterMl: 300,
+    ratio: 15,
+    icePercent: 20,
+    defaultBrewerId: 'v60-02',
+    supportedBrewerIds: ['v60-02'],
+    timerProfileId: 'lance-low-ice',
+    sourceLabel: 'Lance Hedrick',
+    sourceUrl: 'https://www.youtube.com/watch?v=qwvnQcojq9Q',
+  },
+  {
     id: 'aeropress-japanese',
-    name: 'AeroPress · Japanese',
+    name: 'AeroPress · Japanese flash',
     method: 'aeropress',
-    totalWaterMl: 320,
+    sourceTotalWaterMl: 320,
     ratio: 16,
     icePercent: 47,
     defaultBrewerId: 'aeropress-original',
+    supportedBrewerIds: ['aeropress-original'],
+    timerProfileId: 'aeropress-japanese',
     sourceLabel: 'AeroPress',
     sourceUrl: 'https://aeropress.com/blogs/aeropress-recipes/japanese-coffee',
   },
@@ -133,8 +181,17 @@ export const BREWERS: Brewer[] = [
     shortName: 'V60 02',
     capacityMl: null,
     methods: ['flash'],
-    setupInstruction: 'Rinse the V60 filter, then place the brewer over the ice-filled carafe.',
+    setupInstruction: 'Rinse the V60 filter, then place the brewer over the carafe.',
     releaseInstruction: 'Let the last pour drain, then lift the V60 from the carafe.',
+  },
+  {
+    id: 'april-brewer',
+    name: 'April Brewer',
+    shortName: 'April Brewer',
+    capacityMl: null,
+    methods: ['flash'],
+    setupInstruction: 'Rinse the April filter, then place the brewer over the carafe.',
+    releaseInstruction: 'Let the final pour drain, then lift the April Brewer from the carafe.',
   },
   {
     id: 'aeropress-original',
@@ -175,14 +232,9 @@ export function getRecipe(id: RecipeId) {
   return RECIPES.find((recipe) => recipe.id === id) ?? RECIPES[0]
 }
 
-export function getCompatibleBrewers(method: BrewMethod) {
-  return BREWERS.filter((brewer) => brewer.methods.includes(method))
-}
-
-export function getMethodLabel(method: BrewMethod) {
-  if (method === 'flash') return 'flash pour-over'
-  if (method === 'aeropress') return 'AeroPress flash'
-  return 'iced immersion'
+export function getCompatibleBrewers(recipeId: RecipeId) {
+  const recipe = getRecipe(recipeId)
+  return BREWERS.filter((brewer) => recipe.supportedBrewerIds.includes(brewer.id))
 }
 
 function recipeIdForMethod(method: BrewMethod): RecipeId {
@@ -207,7 +259,7 @@ export function sanitizeSettings(settings: StoredBrewSettings): BrewSettings {
       : 'hoffmann'
   const recipe = getRecipe(recipeId)
   const method = recipe.method
-  const compatibleBrewers = getCompatibleBrewers(method)
+  const compatibleBrewers = getCompatibleBrewers(recipe.id)
   const brewerId = compatibleBrewers.some((brewer) => brewer.id === settings.brewerId)
     ? settings.brewerId as BrewerId
     : recipe.defaultBrewerId
@@ -255,16 +307,6 @@ export function getCapacityWarning(settings: BrewSettings): CapacityWarning | nu
     batches: Math.ceil(result.hotWaterMl / capacityBrewer.capacityMl),
     overflowMl: result.hotWaterMl - capacityBrewer.capacityMl,
   }
-}
-
-export function getSteepSeconds(roast: RoastLevel) {
-  return roast === 'dark' ? 4 * 60 : 5 * 60
-}
-
-export function getTimedBrewSeconds(settings: BrewSettings) {
-  if (settings.method === 'flash') return 2 * 60
-  if (settings.method === 'aeropress') return 90
-  return getSteepSeconds(settings.roast)
 }
 
 export function formatRatio(ratio: number) {

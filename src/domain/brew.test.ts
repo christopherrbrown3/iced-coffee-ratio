@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_SETTINGS, calculateBrew, getCapacityWarning, getRecipe, getSteepSeconds, quantizeToStep, sanitizeSettings } from './brew'
+import { BREWERS, DEFAULT_SETTINGS, RECIPES, calculateBrew, getCapacityWarning, getCompatibleBrewers, getRecipe, quantizeToStep, sanitizeSettings, type RecipeId } from './brew'
 
 describe('calculateBrew', () => {
   it('matches Hoffmann’s two-cup source recipe', () => {
@@ -41,29 +41,21 @@ describe('calculateBrew', () => {
     expect(getCapacityWarning(DEFAULT_SETTINGS)).toBeNull()
   })
 
-  it('uses a shorter steep for dark roasts', () => {
-    expect(getSteepSeconds('light')).toBe(300)
-    expect(getSteepSeconds('dark')).toBe(240)
-  })
-
-  it('matches the Counter Culture flash-brew source quantities', () => {
-    const recipe = getRecipe('counter-culture-flash')!
+  it.each([
+    ['counter-culture-flash', { coffeeGrams: 30, hotWaterMl: 335, iceGrams: 165 }],
+    ['april-high-ice', { coffeeGrams: 20, hotWaterMl: 200, iceGrams: 200 }],
+    ['kurasu-japanese', { coffeeGrams: 16, hotWaterMl: 150, iceGrams: 70 }],
+    ['lance-low-ice', { coffeeGrams: 20, hotWaterMl: 240, iceGrams: 60 }],
+    ['aeropress-japanese', { coffeeGrams: 20, hotWaterMl: 170, iceGrams: 150 }],
+  ] satisfies [RecipeId, { coffeeGrams: number, hotWaterMl: number, iceGrams: number }][])('matches the %s source quantities', (recipeId, expected) => {
+    const recipe = getRecipe(recipeId)
     expect(calculateBrew({
       ...DEFAULT_SETTINGS,
       ...recipe,
+      totalWaterMl: recipe.sourceTotalWaterMl,
       recipeId: recipe.id,
       brewerId: recipe.defaultBrewerId,
-    })).toMatchObject({ coffeeGrams: 30, hotWaterMl: 335, iceGrams: 165 })
-  })
-
-  it('matches the AeroPress Japanese flash source quantities', () => {
-    const recipe = getRecipe('aeropress-japanese')!
-    expect(calculateBrew({
-      ...DEFAULT_SETTINGS,
-      ...recipe,
-      recipeId: recipe.id,
-      brewerId: recipe.defaultBrewerId,
-    })).toMatchObject({ coffeeGrams: 20, hotWaterMl: 170, iceGrams: 150 })
+    })).toMatchObject(expected)
   })
 
   it('does not invent a capacity warning for a flow-through V60', () => {
@@ -97,5 +89,41 @@ describe('calculateBrew', () => {
   it('quantizes ratio changes to exactly what the interface displays', () => {
     expect(quantizeToStep(DEFAULT_SETTINGS.ratio + 0.1, 0.1)).toBe(13.4)
     expect(sanitizeSettings({ ...DEFAULT_SETTINGS, ratio: 13.433333333333334 }).ratio).toBe(13.4)
+  })
+
+  it('keeps recipe brewer choices faithful to each source method', () => {
+    expect(getCompatibleBrewers('hoffmann').map(({ id }) => id)).toEqual(['switch-02', 'switch-03', 'clever', 'pulsar'])
+    expect(getCompatibleBrewers('counter-culture-flash').map(({ id }) => id)).toEqual(['v60-02', 'april-brewer'])
+    expect(getCompatibleBrewers('april-high-ice').map(({ id }) => id)).toEqual(['april-brewer'])
+    expect(getCompatibleBrewers('kurasu-japanese').map(({ id }) => id)).toEqual(['v60-02'])
+    expect(getCompatibleBrewers('lance-low-ice').map(({ id }) => id)).toEqual(['v60-02'])
+  })
+
+  it('falls back to the selected recipe brewer when saved settings are incompatible', () => {
+    expect(sanitizeSettings({
+      ...DEFAULT_SETTINGS,
+      recipeId: 'april-high-ice',
+      method: 'flash',
+      brewerId: 'v60-02',
+    })).toMatchObject({
+      recipeId: 'april-high-ice',
+      method: 'flash',
+      brewerId: 'april-brewer',
+    })
+  })
+
+  it('defines unique recipes with valid defaults, profiles, and brewer methods', () => {
+    expect(new Set(RECIPES.map(({ id }) => id)).size).toBe(RECIPES.length)
+    expect(new Set(RECIPES.map(({ timerProfileId }) => timerProfileId)).size).toBe(RECIPES.length)
+
+    for (const recipe of RECIPES) {
+      expect(recipe.supportedBrewerIds).toContain(recipe.defaultBrewerId)
+      expect(recipe.supportedBrewerIds.length).toBeGreaterThan(0)
+      for (const brewerId of recipe.supportedBrewerIds) {
+        const brewer = BREWERS.find(({ id }) => id === brewerId)
+        expect(brewer, `${recipe.id} references ${brewerId}`).toBeDefined()
+        expect(brewer?.methods).toContain(recipe.method)
+      }
+    }
   })
 })

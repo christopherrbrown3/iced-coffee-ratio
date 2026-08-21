@@ -10,7 +10,7 @@ web
 
 ## Users
 
-Home coffee brewers using a Hario Switch or Clever Dripper, usually on a phone beside a kettle and scale. They want repeatable iced coffee without doing ratio arithmetic mid-brew.
+Home coffee brewers using an immersion dripper, manual pour-over, or AeroPress, usually on a phone beside a kettle and scale. They want repeatable iced coffee without doing ratio arithmetic mid-brew.
 
 ## Product Purpose
 

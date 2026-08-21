@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { RECIPES, SOURCE_BATCHES, calculateBrew, formatCoffee, formatRatio, getBrewer, getCapacityWarning, getCompatibleBrewers, getMethodLabel, getRecipe, isRecipeAdjusted, type BrewSettings, type RecipeId, type RoastLevel } from './domain/brew'
+import { RECIPES, SOURCE_BATCHES, calculateBrew, formatCoffee, formatRatio, getBrewer, getCapacityWarning, getCompatibleBrewers, getRecipe, isRecipeAdjusted, type BrewSettings, type RecipeId, type RoastLevel } from './domain/brew'
 import { usePersistentSettings } from './hooks/usePersistentSettings'
 import { Stepper } from './components/Stepper'
 import { TimerView } from './components/TimerView'
 
 type AppView = 'calculator' | 'timer'
 const TIMER_HISTORY_KEY = 'icedCoffeeTimer'
+const RECIPE_GROUPS = [
+  { method: 'immersion', label: 'Immersion' },
+  { method: 'flash', label: 'Flash pour-over' },
+  { method: 'aeropress', label: 'AeroPress' },
+] as const
 
 export function App() {
   const [settings, setSettings] = usePersistentSettings()
@@ -18,7 +23,7 @@ export function App() {
   const brewer = getBrewer(settings.brewerId)
   const recipe = getRecipe(settings.recipeId)
   const recipeAdjusted = isRecipeAdjusted(settings)
-  const compatibleBrewers = getCompatibleBrewers(settings.method)
+  const compatibleBrewers = getCompatibleBrewers(settings.recipeId)
   const assetBase = import.meta.env.BASE_URL
   const iceProgress = (settings.icePercent - 20) / 30 * 100
 
@@ -52,7 +57,7 @@ export function App() {
       method: selected.method,
       ratio: selected.ratio,
       icePercent: selected.icePercent,
-      brewerId: getCompatibleBrewers(selected.method).some((option) => option.id === current.brewerId)
+      brewerId: getCompatibleBrewers(selected.id).some((option) => option.id === current.brewerId)
         ? current.brewerId
         : selected.defaultBrewerId,
     }))
@@ -120,12 +125,18 @@ export function App() {
           <div className="pick-fields">
             <label className="select-field">
               <span>Starting recipe</span>
-              <select value={settings.recipeId} onChange={(event) => selectRecipe(event.target.value as RecipeId)}>
-                {RECIPES.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
+              <select value={settings.recipeId} aria-describedby="recipe-metrics" onChange={(event) => selectRecipe(event.target.value as RecipeId)}>
+                {RECIPE_GROUPS.map((group) => (
+                  <optgroup key={group.method} label={group.label}>
+                    {RECIPES.filter((option) => option.method === group.method).map((option) => (
+                      <option key={option.id} value={option.id}>{option.name}</option>
+                    ))}
+                  </optgroup>
+                ))}
               </select>
             </label>
             <div className="recipe-context">
-              <span>1:{formatRatio(settings.ratio)} total · {settings.icePercent}% ice · {getMethodLabel(settings.method)}</span>
+              <span id="recipe-metrics">1:{formatRatio(settings.ratio)} total · {settings.icePercent}% ice</span>
               <div className="recipe-context__actions">
                 {recipeAdjusted && <span className="recipe-context__badge">Adjusted</span>}
                 <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" aria-label={`View the ${recipe.sourceLabel} recipe source`}>View source ↗</a>
