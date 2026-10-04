@@ -1,6 +1,6 @@
 # Iced Coffee Calculator
 
-**[Open the live calculator →](https://christopherrbrown3.github.io/iced-coffee-ratio/)**
+**[Open the live calculator →](https://icedcoffee.christopherbrown.ai/)**
 
 A colorful, mobile-first iced coffee ratio calculator and guided brew timer. Choose a researched recipe and compatible brewer, adjust the batch, ratio, or ice split, and get exact coffee, hot-water, and ice quantities immediately.
 
@@ -63,6 +63,14 @@ Pour targets scale with the batch, while source cue times remain practical guida
 
 ## Deployment
 
-Pushes to `main` are tested, built, and published to GitHub Pages by [the deployment workflow](.github/workflows/deploy.yml). Vite is configured for the `/iced-coffee-ratio/` base path.
+Pushes to `main` are tested, built, and published to GitHub Pages by [the deployment workflow](.github/workflows/deploy.yml). Vite uses the `/` base path for the custom domain `icedcoffee.christopherbrown.ai`.
+
+The custom domain is configured in the repository's GitHub Pages settings. DNS for `christopherbrown.ai` needs this record:
+
+| Type | Host | Target | TTL |
+| --- | --- | --- | --- |
+| CNAME | `icedcoffee` | `christopherrbrown3.github.io` | Automatic |
+
+The target is the GitHub Pages hostname, without `https://` or a repository path. Once DNS resolves, GitHub can provision the HTTPS certificate. This project deploys through GitHub Actions, so Pages uses the repository setting rather than a `CNAME` file. See [GitHub's custom-domain instructions](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site).
 
 Product intent is documented in [PRODUCT.md](PRODUCT.md), and the visual system is documented in [DESIGN.md](DESIGN.md).
