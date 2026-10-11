@@ -17,6 +17,13 @@ function EmphasizedInstruction({ text }: { text: string }) {
   ))}</>
 }
 
+function getAdvanceCopy(eyebrow: string) {
+  const step = eyebrow.toLowerCase()
+  if (step === 'press') return { title: 'Ready to press?', buttonLabel: 'START PRESS' }
+  if (step === 'final pour') return { title: 'Ready for the final pour?', buttonLabel: 'START FINAL POUR' }
+  return { title: 'Ready to drain?', buttonLabel: 'START DRAIN' }
+}
+
 export function TimerView({ settings, result, onClose }: TimerViewProps) {
   const guide = useMemo(() => resolveTimerGuide(settings, result), [result, settings])
   const timedSeconds = guide.durationSeconds
@@ -26,10 +33,10 @@ export function TimerView({ settings, result, onClose }: TimerViewProps) {
   const resetTimer = timer.reset
   const headingRef = useRef<HTMLHeadingElement>(null)
   const mainRef = useRef<HTMLElement>(null)
-  const activityRef = useRef({ running: timer.running, paused: timer.paused })
+  const activityRef = useRef({ active: timer.active })
   const assetBase = import.meta.env.BASE_URL
 
-  activityRef.current = { running: timer.running, paused: timer.paused }
+  activityRef.current = { active: timer.active }
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -39,8 +46,8 @@ export function TimerView({ settings, result, onClose }: TimerViewProps) {
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
       if (event.state?.icedCoffeeTimer) return
-      const { running, paused } = activityRef.current
-      if ((running || paused) && !window.confirm('Leave this brew and reset the timer?')) {
+      const { active } = activityRef.current
+      if (active && !window.confirm('Leave this brew and reset the timer?')) {
         window.history.pushState({ ...window.history.state, icedCoffeeTimer: true }, '')
         return
       }
@@ -48,8 +55,8 @@ export function TimerView({ settings, result, onClose }: TimerViewProps) {
       onClose(true)
     }
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      const { running, paused } = activityRef.current
-      if (!running && !paused) return
+      const { active } = activityRef.current
+      if (!active) return
       event.preventDefault()
       event.returnValue = ''
     }
@@ -63,7 +70,7 @@ export function TimerView({ settings, result, onClose }: TimerViewProps) {
   }, [onClose, resetTimer])
 
   const closeTimer = () => {
-    if ((timer.running || timer.paused) && !window.confirm('Leave this brew and reset the timer?')) return
+    if (timer.active && !window.confirm('Leave this brew and reset the timer?')) return
     timer.reset()
     onClose()
   }
@@ -74,19 +81,22 @@ export function TimerView({ settings, result, onClose }: TimerViewProps) {
   }
 
   const activeStep = steps[Math.max(0, Math.min(timer.cueIndex, steps.length - 1))]
+  const advanceCopy = getAdvanceCopy(guide.release.eyebrow)
   const displayCopy = timer.phase === 'ready'
     ? { eyebrow: 'Ready?', title: 'Set up the brew' }
     : timer.phase === 'timed'
       ? activeStep
-      : timer.phase === 'release'
-        ? guide.release
-        : guide.complete
+      : timer.phase === 'next-step'
+        ? { eyebrow: 'Brew complete', title: advanceCopy.title }
+        : timer.phase === 'release'
+          ? guide.release
+          : guide.complete
   const clockIsElapsed = timer.phase === 'release' || timer.phase === 'complete'
   const timeDisplay = clockIsElapsed
     ? formatTime(timer.releaseSeconds)
     : formatCountdownTime(timer.remainingSeconds)
   const clockLabel = `${timeDisplay} ${clockIsElapsed ? 'elapsed' : 'remaining'}${timer.paused ? ', paused' : ''}`
-  const tone = timer.phase === 'timed' ? activeStep.tone : timer.phase
+  const tone = timer.phase === 'timed' ? activeStep.tone : timer.phase === 'next-step' ? 'release' : timer.phase
 
   return (
     <div className={`timer-view timer-view--${tone}`}>
@@ -120,6 +130,7 @@ export function TimerView({ settings, result, onClose }: TimerViewProps) {
               </ol>
             )}
             {timer.phase === 'timed' && <p>{activeStep.instruction}</p>}
+            {timer.phase === 'next-step' && <p>{guide.release.instruction}</p>}
             {timer.phase === 'release' && <p>{guide.release.instruction}</p>}
             {timer.phase === 'complete' && <p>{guide.complete.instruction}</p>}
           </div>
@@ -130,6 +141,9 @@ export function TimerView({ settings, result, onClose }: TimerViewProps) {
               <button className="secondary-action" type="button" onClick={timer.paused ? timer.resume : timer.pause}>
                 {timer.paused ? 'RESUME' : 'PAUSE'}
               </button>
+            )}
+            {timer.phase === 'next-step' && (
+              <button className="primary-action" type="button" onClick={timer.startRelease}>{advanceCopy.buttonLabel}</button>
             )}
             {timer.phase === 'release' && (
               <>

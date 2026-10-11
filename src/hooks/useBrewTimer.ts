@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-export type TimerPhase = 'ready' | 'timed' | 'release' | 'complete'
+export type TimerPhase = 'ready' | 'timed' | 'next-step' | 'release' | 'complete'
 const CUES_STORAGE_KEY = 'iced-coffee-calculator:cues:v1'
 
 function createCue() {
@@ -35,6 +35,7 @@ export function useBrewTimer(timedSeconds: number, cueSeconds: number[] = []) {
   const [startedAt, setStartedAt] = useState<number | null>(null)
   const [pausedAt, setPausedAt] = useState<number | null>(null)
   const [pausedDuration, setPausedDuration] = useState(0)
+  const [releaseStartedAtElapsed, setReleaseStartedAtElapsed] = useState<number | null>(null)
   const [completedAtElapsed, setCompletedAtElapsed] = useState<number | null>(null)
   const [now, setNow] = useState(Date.now())
   const [cuesEnabled, setCuesEnabled] = useState(readCuePreference)
@@ -42,18 +43,20 @@ export function useBrewTimer(timedSeconds: number, cueSeconds: number[] = []) {
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
   const previousCueIndexRef = useRef(-1)
 
-  const running = startedAt !== null && pausedAt === null && completedAtElapsed === null
   const activeNow = pausedAt ?? now
   const elapsedSeconds = completedAtElapsed ?? (startedAt === null ? 0 : Math.max(0, (activeNow - startedAt - pausedDuration) / 1000))
+  const active = startedAt !== null && completedAtElapsed === null
+  const running = active && pausedAt === null && (elapsedSeconds < timedSeconds || releaseStartedAtElapsed !== null)
   const remainingSeconds = Math.max(0, timedSeconds - elapsedSeconds)
 
   const phase = useMemo<TimerPhase>(() => {
     if (startedAt === null) return 'ready'
     if (completedAtElapsed !== null) return 'complete'
-    return elapsedSeconds < timedSeconds ? 'timed' : 'release'
-  }, [completedAtElapsed, elapsedSeconds, startedAt, timedSeconds])
+    if (elapsedSeconds < timedSeconds) return 'timed'
+    return releaseStartedAtElapsed === null ? 'next-step' : 'release'
+  }, [completedAtElapsed, elapsedSeconds, releaseStartedAtElapsed, startedAt, timedSeconds])
 
-  const releaseSeconds = Math.max(0, elapsedSeconds - timedSeconds)
+  const releaseSeconds = releaseStartedAtElapsed === null ? 0 : Math.max(0, elapsedSeconds - releaseStartedAtElapsed)
   const cueIndex = cueSeconds.reduce((latest, second, index) => elapsedSeconds >= second ? index : latest, -1)
 
   const playCue = useCallback(() => {
@@ -141,6 +144,7 @@ export function useBrewTimer(timedSeconds: number, cueSeconds: number[] = []) {
     setStartedAt(Date.now())
     setPausedAt(null)
     setPausedDuration(0)
+    setReleaseStartedAtElapsed(null)
     setCompletedAtElapsed(null)
     setNow(Date.now())
     previousCueIndexRef.current = 0
@@ -160,16 +164,23 @@ export function useBrewTimer(timedSeconds: number, cueSeconds: number[] = []) {
   }, [pausedAt])
 
   const finish = useCallback(() => {
-    if (startedAt === null) return
+    if (startedAt === null || releaseStartedAtElapsed === null) return
     setCompletedAtElapsed(elapsedSeconds)
     setPausedAt(null)
     playCue()
-  }, [elapsedSeconds, playCue, startedAt])
+  }, [elapsedSeconds, playCue, releaseStartedAtElapsed, startedAt])
+
+  const startRelease = useCallback(() => {
+    if (phase !== 'next-step') return
+    setReleaseStartedAtElapsed(elapsedSeconds)
+    setNow(Date.now())
+  }, [elapsedSeconds, phase])
 
   const reset = useCallback(() => {
     setStartedAt(null)
     setPausedAt(null)
     setPausedDuration(0)
+    setReleaseStartedAtElapsed(null)
     setCompletedAtElapsed(null)
     setNow(Date.now())
     previousCueIndexRef.current = -1
@@ -177,6 +188,7 @@ export function useBrewTimer(timedSeconds: number, cueSeconds: number[] = []) {
 
   return {
     phase,
+    active,
     running,
     paused: pausedAt !== null,
     elapsedSeconds,
@@ -188,6 +200,7 @@ export function useBrewTimer(timedSeconds: number, cueSeconds: number[] = []) {
     start,
     pause,
     resume,
+    startRelease,
     finish,
     reset,
   }
